@@ -6,7 +6,7 @@ from apigroups.client.apis import WorkloadV1Api
 from apigroups.client import configuration, api_client
 from tabulate import tabulate
 import argparse
-from tzlocal import get_localzone
+from datetime import timezone
 import datetime
 import warnings
 import re
@@ -29,7 +29,7 @@ api_instance = WorkloadV1Api(client)
 parser = argparse.ArgumentParser()
 parser.add_argument(dest = "Quick Command", action='store_true', 
 help = "'find_workload.py --age 1w' prints workload from recent one week")
-parser.add_argument("--age", dest="age", help="creation date: <number>d|w|m")
+parser.add_argument("--age", dest="age", default="8w", help="creation date: <number>d|w|m")
 parser.add_argument("--dsc", dest="dsc", help = "name of DSC" )
 parser.add_argument("--label", dest="label", help = 'label of workload, e.g. --label key:value')
 parser.add_argument("--host", dest="host", help = 'host name of workload')
@@ -50,10 +50,10 @@ workload_list = []
 new_item_list =[]
 
 
-current_time = datetime.datetime.now(get_localzone())
+current_time = datetime.datetime.now(timezone.utc)
 desired_time = datetime.datetime.now()
 
-
+#set default_time: recent 8 weeks workload when user does not input age
 if args.age:
     #if user does not specify time length, the default unit is weeks
     if args.age.isnumeric():
@@ -71,20 +71,14 @@ if args.age:
             desired_time = current_time - datetime.timedelta(weeks = int(date_number))
         elif date_type == "d" or "day" in date_type:
             desired_time = current_time - datetime.timedelta(days = int(date_number))
+        elif date_type == "h" or "hour" in date_type:
+            desired_time = current_time - datetime.timedelta(hours = int(date_number))
         else:
             print("Please enter valid input. e.g. --age 5w")
             exit()
     for x in items:
         if desired_time < x['meta']['creation_time']: 
             workload_list.append(x)   
-
-#set default_time: recent 8 weeks workload when user does not input age
-else:
-    default_time = 8
-    desired_time = current_time - datetime.timedelta(weeks = int(default_time))
-    for item in items:
-            if desired_time < item['meta']['creation_time']: 
-                workload_list.append(item)
 
 
 if args.dsc:
@@ -139,10 +133,15 @@ if workload_list:
             workloads.append(item['meta']['tenant'])
             workloads.append(item['spec']['host_name'])
             workloads.append(item['spec']['interfaces'][0]['mac_address'])
+            if item['status']['interfaces'][0]['ip_addresses']:
+                string_ip = ""
+                for ips in item['status']['interfaces'][0]['ip_addresses']:
+                    string_ip += ips + " "
+                workloads.append(string_ip)
             workloads.append(item['status']['interfaces'][0]['external_vlan'])
             workloads.append(item['status']['interfaces'][0]['network'])
             final_dict.append(workloads)
-        print(tabulate(final_dict, headers=["workload-name", "creation_time", "labels", "tenant", "host_name", "mac_address", "external_vlan", "network"]))
+        print(tabulate(final_dict, headers=["workload_name", "creation_time", "labels", "tenant", "host_name", "mac_address", "ip_address", "external_vlan", "network"]))
         
 else:
     print('There are no workloads matching the descriptions.')
