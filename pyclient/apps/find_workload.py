@@ -25,7 +25,7 @@ configuration.verify_ssl = False
 client = api_client.ApiClient(configuration)
 api_instance = WorkloadV1Api(client)
 
-
+#output recent 8 weeks' workloads when user does not input age
 parser = argparse.ArgumentParser()
 parser.add_argument(dest = "Quick Command", action='store_true', 
 help = "'find_workload.py --age 1w' prints workload from recent one week")
@@ -35,7 +35,6 @@ parser.add_argument("--label", dest="label", help = 'label of workload, e.g. --l
 parser.add_argument("--host", dest="host", help = 'host name of workload')
 parser.add_argument("--tenant", dest="tenant", help = 'tenant name, if not specified, default')
 parser.add_argument("--json", dest="json", action="store_true", help = 'output in json format')
-
 args = parser.parse_args()
 
 
@@ -43,17 +42,15 @@ if args.tenant:
     tenant = args.tenant
 else:
     tenant = 'default'
-
 workload = api_instance.list_workload(o_tenant = tenant)
 items = workload['items']
 workload_list = []
 new_item_list =[]
 
-
 current_time = datetime.datetime.now(timezone.utc)
 desired_time = datetime.datetime.now()
 
-#set default_time: recent 8 weeks workload when user does not input age
+
 if args.age:
     #if user does not specify time length, the default unit is weeks
     if args.age.isnumeric():
@@ -118,19 +115,19 @@ if workload_list:
         print(workload_list)
     else:
         final_dict = []
-        labels = []
         for item in workload_list:
             workloads = []
             workloads.append(item['meta']['name'])
             workloads.append(item['meta']['creation_time'])
-            if item.get('meta').get('labels'):
+            if item['meta'].get('labels'):
                 string_label = ""
-                for key, value in item.get('meta').get('labels').items():
+                for key, value in item['meta']['labels'].items():
                     string_label += key + ':' + value + "   "
                 workloads.append(string_label)
             else:
                 workloads.append("n/a")
-            workloads.append(item['meta']['tenant'])
+            if args.tenant:
+                workloads.append(item['meta']['tenant'])
             workloads.append(item['spec']['host_name'])
             workloads.append(item['spec']['interfaces'][0]['mac_address'])
             if item['status']['interfaces'][0]['ip_addresses']:
@@ -138,11 +135,11 @@ if workload_list:
                 for ips in item['status']['interfaces'][0]['ip_addresses']:
                     string_ip += ips + " "
                 workloads.append(string_ip)
-            workloads.append(item['status']['interfaces'][0]['external_vlan'])
             workloads.append(item['status']['interfaces'][0]['network'])
             final_dict.append(workloads)
-        print(tabulate(final_dict, headers=["workload_name", "creation_time", "labels", "tenant", "host_name", "mac_address", "ip_address", "external_vlan", "network"]))
-        
+        if args.tenant:
+            print(tabulate(final_dict, headers=["workload-name", "creation-time", "labels", "tenant", "host-name", "mac-address", "ip-address", "network"]))
+        else:
+            print(tabulate(final_dict, headers=["workload-name", "creation-time", "labels", "host-name", "mac-address", "ip-address", "network"]))
 else:
     print('There are no workloads matching the descriptions.')
-        
