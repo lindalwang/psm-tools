@@ -104,10 +104,11 @@ if args.label:
         new_item_list = workload_list
         workload_list = []
         for item in new_item_list:
-            label = item['meta']['labels']
-            if label and key in label.keys():
-                if value in label.get(key):
-                    workload_list.append(item)
+            if item['meta'].get('labels'):
+                label = item['meta']['labels']
+                if label and key in label.keys():
+                    if value in label.get(key):
+                        workload_list.append(item)
 
 
 if workload_list:
@@ -130,11 +131,13 @@ if workload_list:
                 workloads.append(item['meta']['tenant'])
             workloads.append(item['spec']['host_name'])
             workloads.append(item['spec']['interfaces'][0]['mac_address'])
-            if item['status']['interfaces'][0]['ip_addresses']:
+            if item['status']['interfaces'][0].get('ip_addresses'):
                 string_ip = ""
                 for ips in item['status']['interfaces'][0]['ip_addresses']:
                     string_ip += ips + " "
                 workloads.append(string_ip)
+            else:
+                workloads.append('n/a')
             workloads.append(item['status']['interfaces'][0]['network'])
             final_dict.append(workloads)
         if args.tenant:
