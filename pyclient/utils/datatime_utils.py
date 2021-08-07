@@ -10,7 +10,7 @@ def time_delta_from_now(age, current_time):
             print("Since no time unit is specified, logs within recent " + age + " hours are returned.")
             desired_time = current_time - datetime.timedelta(hours = int(age))
         elif age.isalpha():
-            logging.error("Please enter valid input. e.g. --age 3d")
+            logging.error("Please enter valid input. e.g. --age 3h")
             sys.exit()
         else:
             date_type = "".join(re.split("[^a-zA-Z]*", age))
