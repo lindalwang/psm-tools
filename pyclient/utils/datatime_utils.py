@@ -5,7 +5,7 @@ import sys, logging
 
 def time_delta_from_now(age, current_time): 
     if age:
-        #if user does not specify time length, the default unit is days
+        #if user does not specify time length, the default unit is hours
         if age.isnumeric():
             print("Since no time unit is specified, logs within recent " + age + " hours are returned.")
             desired_time = current_time - datetime.timedelta(hours = int(age))
