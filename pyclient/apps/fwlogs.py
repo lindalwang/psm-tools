@@ -33,16 +33,21 @@ parser.add_argument(dest = "Quick Command", action='store_true',
 help = "'fwlogs.py --from dc22-vm102 --age 1h' show firewall logs from the workload in past 1hr")
 parser.add_argument("--source", dest="source", help="source workload name or a part of the workload name")
 parser.add_argument("--destination", dest="dest", help = "destination workload name or a part of the workload name" )
-parser.add_argument("--age", dest="age", default="1d", help = 'firewall logs in past age: <number>h|d|w')
+parser.add_argument("--age", dest="age", default="12", help = 'firewall logs in past age: <number>h')
 parser.add_argument("--tenant", dest="tenant", default = "default", help = 'tenant name, if not specified, default')
 parser.add_argument("--json", dest="json", action="store_true", help = 'output in json format')
 args = parser.parse_args()
 
 current_time = datetime.datetime.now(timezone.utc)
-desired_time = datetime.datetime.now()
 desired_time = time_delta_from_now(args.age, current_time)
+time_diff = current_time - desired_time 
 
-fw_list = api_instance.get_get_logs1()
+if time_diff.days >= 1:
+    logging.error('Only recent 24h logs can be searched.')
+    sys.exit()
+
+query = FwlogFwLogQuery(start_time = desired_time)
+fw_list = api_instance.post_get_logs(body = query)
 if not fw_list.get('items'):
     logging.error('There are no logs present.')
     sys.exit()
@@ -114,6 +119,6 @@ if new_list:
             fwlogs.append(item['fwlog'].reporter_id)
             final_fwlog.append(fwlogs)
         print(tabulate(final_fwlog, headers=["creation time", "source workload", "source ip", "destination workload", "destination ip", "protocol", "reporter id"]))
-        print("There are " + str(log_num) + " firewall logs total.")
+        print("There are " + str(log_num) + " matching firewall logs total.")
 else:
     print("There are no firewall logs matching the descriptions.")
